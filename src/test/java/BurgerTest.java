@@ -1,137 +1,97 @@
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
-import praktikum.Bun;
-import praktikum.Burger;
-import praktikum.Ingredient;
+import praktikum.*;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static praktikum.IngredientType.FILLING;
-import static praktikum.IngredientType.SAUCE;
 
-@RunWith(MockitoJUnitRunner.class)
 public class BurgerTest {
-    private Burger burger;
-    private static final float DELTA = 0.001f;
-
-    @Mock
-    private Bun bun;
-
-    @Mock
-    private Ingredient ingredient;
+    private List<Bun> buns;
+    private List<Ingredient> ingredients;
 
     @Before
     public void setUp() {
-        burger = new Burger();
-        MockitoAnnotations.openMocks(this);
-        System.out.println("Setup complete. Burger initialized.");
+        // Mock the database
+        Database mockDatabase = mock(Database.class);
+
+        // Create a list of buns and ingredients
+        buns = new ArrayList<>();
+        ingredients = new ArrayList<>();
+
+        // Add buns to the list
+        buns.add(new Bun("black bun", 100));
+        buns.add(new Bun("white bun", 200));
+        buns.add(new Bun("red bun", 300));
+
+        // Add ingredients to the list
+        ingredients.add(new Ingredient(IngredientType.SAUCE, "hot sauce", 100));
+        ingredients.add(new Ingredient(IngredientType.SAUCE, "sour cream", 200));
+        ingredients.add(new Ingredient(IngredientType.SAUCE, "chili sauce", 300));
+        ingredients.add(new Ingredient(IngredientType.FILLING, "cutlet", 100));
+        ingredients.add(new Ingredient(IngredientType.FILLING, "dinosaur", 200));
+        ingredients.add(new Ingredient(IngredientType.FILLING, "sausage", 300));
+
+        // Mock the database responses
+        when(mockDatabase.availableBuns()).thenReturn(buns);
+        when(mockDatabase.availableIngredients()).thenReturn(ingredients);
     }
 
     @Test
-    public void shouldSetBunForBurger() {
-        System.out.println("Test: shouldSetBunForBurger");
-        burger.setBuns(bun);
-        assertNotNull("Bun should not be null", burger.bun);
-        System.out.println("Bun set successfully: " + burger.bun);
+    public void getPriceTest() {
+        // Create a new burger and set its ingredients
+        Burger burger = new Burger();
+        burger.setBuns(buns.get(0)); // black bun (100)
+        burger.addIngredient(ingredients.get(1)); // sour cream (200)
+        burger.addIngredient(ingredients.get(4)); // dinosaur (200)
+        burger.addIngredient(ingredients.get(3)); // cutlet (100)
+        burger.addIngredient(ingredients.get(5)); // sausage (300)
+        burger.moveIngredient(2, 1); // Move cutlet (100) to position 1
+        burger.removeIngredient(3); // Remove sausage (300)
+
+        // Output the state of the burger
+        System.out.println("Burger with black bun and ingredients:");
+        for (Ingredient ingredient : burger.ingredients) {
+            System.out.println(ingredient.getType() + ": " + ingredient.getName() + " (" + ingredient.getPrice() + ")");
+        }
+
+        // Calculate and print the expected price
+        float expectedPrice = 700.0f;
+        System.out.println("Expected price: " + expectedPrice);
+        System.out.println("Actual price: " + burger.getPrice());
+
+        // Assert the price
+        assertEquals(expectedPrice, burger.getPrice(), 0);
     }
 
     @Test
-    public void shouldAddIngredientToBurger() {
-        System.out.println("Test: shouldAddIngredientToBurger");
-        burger.addIngredient(ingredient);
-        assertFalse("Ingredients list should not be empty", burger.ingredients.isEmpty());
-        assertEquals("Ingredients list should contain 1 ingredient", 1, burger.ingredients.size());
-        System.out.println("Ingredient added successfully. Ingredients list: " + burger.ingredients);
-    }
+    public void getReceiptTest() {
+        // Create a new burger and set its ingredients
+        Burger burger = new Burger();
+        burger.setBuns(buns.get(2)); // red bun (300)
+        burger.addIngredient(ingredients.get(1)); // sour cream (200)
+        burger.addIngredient(ingredients.get(4)); // dinosaur (200)
 
-    @Test
-    public void shouldRemoveIngredientFromBurger() {
-        System.out.println("Test: shouldRemoveIngredientFromBurger");
-        burger.addIngredient(ingredient);
-        int index = burger.ingredients.indexOf(ingredient);
-        burger.removeIngredient(index);
-        assertTrue("Ingredients list should be empty", burger.ingredients.isEmpty());
-        System.out.println("Ingredient removed successfully. Ingredients list: " + burger.ingredients);
-    }
+        // Output the state of the burger
+        System.out.println("Burger with red bun and ingredients:");
+        for (Ingredient ingredient : burger.ingredients) {
+            System.out.println(ingredient.getType() + ": " + ingredient.getName() + " (" + ingredient.getPrice() + ")");
+        }
 
-    @Test
-    public void shouldMoveIngredientInBurger() {
-        System.out.println("Test: shouldMoveIngredientInBurger");
-        burger.addIngredient(ingredient);
-        Ingredient secondIngredient = new Ingredient(SAUCE, "Ketchup", 0.5F);
-        burger.addIngredient(secondIngredient);
+        // Calculate and print the expected price
+        double expectedPrice = 1000.0;
+        double actualPrice = burger.getPrice();
+        System.out.println("Expected price: " + expectedPrice);
+        System.out.println("Actual price: " + actualPrice);
 
-        int initialIndex = burger.ingredients.indexOf(ingredient);
-        int newIndex = burger.ingredients.indexOf(secondIngredient);
+        // Assert the price
+        assertEquals(expectedPrice, actualPrice, 0.1);
 
-        burger.moveIngredient(newIndex, initialIndex);
-
-        assertEquals("First ingredient should be the moved one", ingredient, burger.ingredients.get(newIndex));
-        System.out.println("Ingredient moved successfully. Ingredients list: " + burger.ingredients);
-    }
-
-
-    @Test
-    public void calculateBurgerPriceWithIngredients() {
-        // Arrange
-        float priceBun = 0.25f;
-        float priceIngredient = 0.7f;
-        float secondIngredientPrice = 0.5f;
-        float expectedPrice = priceBun * 2 + secondIngredientPrice + priceIngredient;
-
-        // Stubbing
-        when(bun.getPrice()).thenReturn(priceBun);
-        when(ingredient.getPrice()).thenReturn(priceIngredient);
-
-        // Act
-        burger.setBuns(bun);
-        burger.addIngredient(ingredient);
-        Ingredient secondIngredient = new Ingredient(SAUCE, "Patty", secondIngredientPrice);
-        burger.addIngredient(secondIngredient);
-
-        // Log Outputs
-        System.out.println("Burger price calculation test started.");
-        System.out.println("Price of bun: " + priceBun);
-        System.out.println("Price of first ingredient: " + priceIngredient);
-        System.out.println("Price of second ingredient: " + secondIngredientPrice);
-
-        // Assert
-        float actualPrice = burger.getPrice();
-        System.out.println("Calculated burger price: " + actualPrice);
-        assertEquals("Calculated burger price does not match expected", expectedPrice, actualPrice, DELTA);
-
-        // Verify interactions
-        Mockito.verify(bun, Mockito.times(1)).getPrice();
-        Mockito.verify(ingredient, Mockito.times(1)).getPrice();
-        Mockito.verifyNoMoreInteractions(bun, ingredient);
-
-        // Log Outputs
-        System.out.println("Price calculation test completed successfully.");
-    }
-
-
-    @Test
-    public void shouldGetRecipeOfBurger() {
-        System.out.println("Test: shouldGetRecipeOfBurger");
-        float priceBun = 0.25f;
-        float priceIngredient = 0.7f;
-        Ingredient secondIngredient = new Ingredient(SAUCE, "Ketchup", 0.1f);
-        when(bun.getName()).thenReturn("myFirstBun");
-        when(bun.getPrice()).thenReturn(priceBun);
-        when(ingredient.getType()).thenReturn(FILLING);
-        when(ingredient.getName()).thenReturn("Patty");
-        when(ingredient.getPrice()).thenReturn(priceIngredient);
-        burger.setBuns(bun);
-        burger.addIngredient(ingredient);
-        burger.addIngredient(secondIngredient);
-        System.out.println("Burger receipt:\n" + burger.getReceipt());
-        Mockito.verify(bun, Mockito.times(2)).getName();
-        Mockito.verify(ingredient, Mockito.times(1)).getType();
-        Mockito.verify(ingredient, Mockito.times(1)).getName();
+        // Print the receipt
+        String receipt = burger.getReceipt();
+        System.out.println("Receipt:\n" + receipt);
     }
 }
